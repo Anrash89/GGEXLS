@@ -140,7 +140,6 @@
     </section>
 
     <footer>
-      Готово для публикации на <b>GitHub Pages</b>: просто сохраните этот файл как <code class="inline">index.html</code> в репозитории и включите Pages.
     </footer>
   </main>
 
@@ -189,7 +188,8 @@
   }
 
   function detectDelimiter(text) {
-    const lines = text.split(/?
+    const lines = text.split(/
+?
 /).slice(0, 20);
     const cand = [',',';','	','|'];
     let best = { sep: null, score: -1 };
@@ -231,7 +231,8 @@
   function parseAsCSV(text) {
     const sep = detectDelimiter(text);
     if (!sep) return null;
-    const rows = text.split(/?
+    const rows = text.split(/
+?
 /).map(line => line.split(sep));
     if (!rows.length || rows.every(r => r.length <= 1)) return null;
     const wb = XLSX.utils.book_new();
@@ -258,7 +259,8 @@
         return;
       }
       const wb = XLSX.utils.book_new();
-      const lines = text.split(/?
+      const lines = text.split(/
+?
 /);
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["raw_text"], ...lines.map(l=>[l])]), 'raw');
       setStatus(`Это текстовый файл, но структура не распознана. Сохранил строки в лист <i>raw</i>.`, 'warn');
