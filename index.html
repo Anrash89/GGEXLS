@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GGE → Excel — офлайн‑конвертер</title>
+  <meta name="description" content="Конвертер .gge → .xlsx или .xls. Работает полностью в браузере. Идеально для GitHub Pages." />
+  <!-- SheetJS (XLSX) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      /* Нежная пастельная палитра */
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --ink: #2a2f3a;
+      --muted: #737b8c;
+      --primary: #7aa7ff;   /* васильковый */
+      --primary-weak: #e8f0ff;
+      --accent: #ffa3c0;    /* розовый пастель */
+      --ok: #72d1b1;        /* мятный */
+      --warn: #ffd88a;      /* кремовый */
+      --err: #ff98a4;       /* коралл пастель */
+      --ring: 0 0 0 4px rgba(122,167,255,.25);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+      color: var(--ink);
+      background:
+        radial-gradient(900px 600px at 10% -10%, #ffeef6 0%, transparent 60%),
+        radial-gradient(900px 600px at 110% 10%, #eaf2ff 0%, transparent 60%),
+        var(--bg);
+      display: grid; place-items: start center; padding: 36px 16px;
+    }
+    .app { width: 100%; max-width: 980px; }
+
+    header { text-align: center; margin-bottom: 22px; }
+    h1 { margin: 0; font-weight: 800; letter-spacing:.2px; font-size: clamp(22px, 3.5vw, 38px); }
+    p.sub { margin: 8px 0 0; color: var(--muted); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid #eef0f6;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(35, 46, 73, .08);
+    }
+
+    .grid { display: grid; gap: 18px; grid-template-columns: 1fr; }
+    @media (min-width: 900px) { .grid { grid-template-columns: 1.1fr .9fr; } }
+
+    .dropzone {
+      display: grid; place-items: center; text-align: center; gap: 14px;
+      border: 2px dashed #d8def0; border-radius: 16px; padding: 28px; transition: .2s ease;
+      background: linear-gradient(180deg, #fbfcff 0, #f8fbff 100%);
+    }
+    .dropzone.dragover { border-color: var(--primary); background: var(--primary-weak); }
+    .dropzone input[type=file] { display: none; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 11px 16px; border-radius: 12px; border: 1px solid #d7def1;
+      background: linear-gradient(180deg, #fff, #f7f9ff);
+      color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: none;
+      box-shadow: 0 6px 20px rgba(122,167,255,.15);
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .format {
+      display:flex; gap:10px; align-items:center; justify-content:center; margin-top:8px;
+      color: var(--muted); font-size: 14px;
+    }
+    .format label { display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px; cursor:pointer; }
+    .format input { accent-color: var(--primary); }
+
+    .hints { display: grid; gap: 8px; margin-top: 10px; color: var(--muted); font-size: 14px; }
+
+    .status { margin-top: 16px; display: grid; gap: 10px; }
+    .pill { display: inline-block; padding: 5px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #e6e9f4; background: #f7f9ff; }
+    .ok { background: linear-gradient(180deg, #e9fbf5, #dff7ef); border-color:#d3f2e7; color:#0f3d2f; }
+    .warn { background: linear-gradient(180deg, #fff8e6, #fff2d2); border-color:#ffe6aa; color:#5a4200; }
+    .err { background: linear-gradient(180deg, #ffe9ec, #ffe1e5); border-color:#ffd0d6; color:#5a1e24; }
+
+    footer { margin-top: 20px; color: var(--muted); font-size: 13px; text-align: center; }
+    code.inline { background: #f1f5ff; padding: 2px 6px; border-radius: 6px; }
+    a { color: #5a8cff; text-underline-offset: 3px; }
+
+    .list { line-height:1.7; padding-left: 18px; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>GGE → Excel</h1>
+      <p class="sub">Конвертация <b>.gge</b> в <b>.xlsx</b> или <b>.xls</b> прямо в браузере. Ничего не загружается на сервер.</p>
+    </header>
+
+    <section class="card grid">
+      <div>
+        <div id="drop" class="dropzone" tabindex="0" role="button" aria-label="Зона перетаскивания файлов">
+          <div style="font-size: 18px; font-weight: 700;">Перетащите файл <span class="pill">*.gge</span></div>
+          <div style="color:var(--muted)">или</div>
+          <label class="btn" for="file">Выбрать файл…</label>
+          <input id="file" type="file" accept=".gge,.json,.txt,.csv,.tsv" />
+
+          <div class="format" aria-label="Формат выгрузки">
+            <span>Сохранить как:</span>
+            <label><input type="radio" name="fmt" value="xlsx" checked> <b>.xlsx</b> (современный)</label>
+            <label><input type="radio" name="fmt" value="xls"> <b>.xls</b> (Excel 97–2003)</label>
+          </div>
+
+          <div class="hints">
+            <div>Поддерживаются <b>текстовые</b> .gge: JSON, CSV/TSV и похожие. Вложенные объекты аккуратно разворачиваются в таблицу.</div>
+            <div>Если это <b>бинарный</b> .gge, появится предупреждение — нужен отдельный парсер под конкретную программу.</div>
+          </div>
+        </div>
+
+        <div class="status" id="status"></div>
+      </div>
+
+      <div>
+        <h3 style="margin:0 0 6px 0">Как работает конвертация</h3>
+        <ol class="list">
+          <li>Файл читается <b>локально</b> — он не покидает ваш браузер.</li>
+          <li>Сначала пробуем распарсить как <b>JSON</b>.
+            <ul>
+              <li>Если это объект — создаём лист <i>data</i> и отдельные листы для массивов объектов верхнего уровня.</li>
+              <li>Если это список объектов — делаем один лист <i>data</i>.</li>
+            </ul>
+          </li>
+          <li>Если не JSON — пробуем как <b>CSV/TSV</b> с автоопределением разделителя.</li>
+          <li>Если структура не распознана — сохраняем сырой текст построчно в лист <i>raw</i>.</li>
+          <li>Похоже на бинарный .gge? Покажем аккуратное предупреждение.</li>
+        </ol>
+        <p style="margin:10px 0 0">Результат скачивается как <code class="inline">.xlsx</code> или <code class="inline">.xls</code> — согласно выбранному формату.</p>
+      </div>
+    </section>
+
+    <footer>
+      Готово для публикации на <b>GitHub Pages</b>: просто сохраните этот файл как <code class="inline">index.html</code> в репозитории и включите Pages.
+    </footer>
+  </main>
+
+<script>
+  const $ = (s) => document.querySelector(s);
+  const drop = $('#drop');
+  const fileInput = $('#file');
+  const statusBox = $('#status');
+
+  const getFormat = () => (document.querySelector('input[name="fmt"]:checked')?.value || 'xlsx');
+
+  function setStatus(html, kind = '') {
+    const cls = kind ? `pill ${kind}` : 'pill';
+    statusBox.innerHTML = `<span class="${cls}">${kind === 'ok' ? 'Готово' : kind === 'warn' ? 'Предупреждение' : kind === 'err' ? 'Ошибка' : 'Статус'}</span>`
+      + `<div>${html}</div>`;
+  }
+
+  function downloadExcel(wb, filename, fmt) {
+    const safe = (filename || 'converted').replace(/\.[^.]+$/, '') || 'converted';
+    if (fmt === 'xls') {
+      XLSX.writeFile(wb, safe + '.xls', { bookType: 'biff8' });
+    } else {
+      XLSX.writeFile(wb, safe + '.xlsx', { compression: true });
+    }
+  }
+
+  function flattenObject(obj, prefix = '', out = {}) {
+    for (const [k, v] of Object.entries(obj)) {
+      const key = prefix ? `${prefix}.${k}` : k;
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        flattenObject(v, key, out);
+      } else if (Array.isArray(v)) {
+        const allObjects = v.every(x => x && typeof x === 'object' && !Array.isArray(x));
+        out[key] = allObjects ? `[${v.length} objects]` : v.join(', ');
+      } else {
+        out[key] = v;
+      }
+    }
+    return out;
+  }
+
+  function isProbablyBinary(str) {
+    const nul = (str.match(/ /g) || []).length;
+    const weird = (str.match(/[ --]/g) || []).length;
+    return nul > 0 || weird > Math.max(24, str.length * 0.05);
+  }
+
+  function detectDelimiter(text) {
+    const lines = text.split(/?
+/).slice(0, 20);
+    const cand = [',',';','	','|'];
+    let best = { sep: null, score: -1 };
+    for (const sep of cand) {
+      let counts = lines.map(l => (l.split(sep).length - 1));
+      const avg = counts.reduce((a,b)=>a+b,0) / (counts.length || 1);
+      const varc = counts.reduce((a,b)=>a + Math.pow(b-avg,2), 0) / (counts.length || 1);
+      const score = avg - varc * 0.1;
+      if (avg >= 1.5 && score > best.score) best = { sep, score };
+    }
+    return best.sep;
+  }
+
+  function parseAsJSON(text) {
+    try {
+      const obj = JSON.parse(text);
+      const wb = XLSX.utils.book_new();
+      if (Array.isArray(obj)) {
+        if (obj.length && typeof obj[0] === 'object') {
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(obj), 'data');
+        } else {
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["value"], ...obj.map(v=>[v])]), 'data');
+        }
+      } else if (obj && typeof obj === 'object') {
+        const flat = [flattenObject(obj)];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(flat), 'data');
+        for (const [k,v] of Object.entries(obj)) {
+          if (Array.isArray(v) && v.length && typeof v[0] === 'object') {
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(v), (k||'list').substring(0,31));
+          }
+        }
+      } else {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["value"],[String(obj)]]), 'data');
+      }
+      return wb;
+    } catch(e) { return null; }
+  }
+
+  function parseAsCSV(text) {
+    const sep = detectDelimiter(text);
+    if (!sep) return null;
+    const rows = text.split(/?
+/).map(line => line.split(sep));
+    if (!rows.length || rows.every(r => r.length <= 1)) return null;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'data');
+    return wb;
+  }
+
+  async function handleFile(file) {
+    setStatus(`Обрабатываю файл: <b>${file.name}</b>…`);
+    const fmt = getFormat();
+
+    const text = await file.text();
+    if (!isProbablyBinary(text)) {
+      const wbJSON = parseAsJSON(text);
+      if (wbJSON) {
+        setStatus(`Определён как <b>JSON</b>. Готовлю Excel…`, 'ok');
+        downloadExcel(wbJSON, file.name, fmt);
+        return;
+      }
+      const wbCSV = parseAsCSV(text);
+      if (wbCSV) {
+        setStatus(`Определён как <b>CSV/TSV</b>. Готовлю Excel…`, 'ok');
+        downloadExcel(wbCSV, file.name, fmt);
+        return;
+      }
+      const wb = XLSX.utils.book_new();
+      const lines = text.split(/?
+/);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["raw_text"], ...lines.map(l=>[l])]), 'raw');
+      setStatus(`Это текстовый файл, но структура не распознана. Сохранил строки в лист <i>raw</i>.`, 'warn');
+      downloadExcel(wb, file.name, fmt);
+      return;
+    }
+
+    setStatus(
+      `Похоже, это <b>бинарный .gge</b> (обнаружены непечатные символы).
+`+
+      `Для такого файла нужен специальный парсер под программу, которая его создала.`,
+      'warn'
+    );
+  }
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files && fileInput.files[0];
+    if (f) handleFile(f);
+  });
+
+  ;['dragenter','dragover'].forEach(evt => drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); }));
+  ;['dragleave','drop'].forEach(evt => drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); }));
+  drop.addEventListener('drop', e => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) handleFile(f); });
+  drop.addEventListener('click', () => fileInput.click());
+  drop.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+</script>
+</body>
+</html>
