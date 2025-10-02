@@ -102,7 +102,6 @@
             opacity: 0;
         }
 
-        /* Анимации для карточек */
         .trick-card:hover {
             transform: translateY(-10px) scale(1.05);
             box-shadow: 0 0 25px rgba(162, 89, 255, 0.7);
@@ -124,41 +123,30 @@
             background-color: rgba(0, 0, 0, 0.3);
         }
 
-        /* Анимации появления элементов */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
         
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Добавляем задержку для анимации каждой карточки */
         .trick-card:nth-child(1) { animation-delay: 0.2s; }
         .trick-card:nth-child(2) { animation-delay: 0.4s; }
         .trick-card:nth-child(3) { animation-delay: 0.6s; }
-
     </style>
 </head>
 <body>
 
     <div class="container">
-        <header>
-            <h1>Школа Волшебства</h1>
-        </header>
+        <header><h1>Школа Волшебства</h1></header>
 
         <main>
             <div class="video-player">
                 <video id="main-video" controls autoplay muted playsinline>
-                    <!-- Первое видео загружается по умолчанию -->
+                    <!-- ВАЖНО: Все ссылки на видео и картинки изменены -->
                     <source src="https://getfile.dokpub.com/yandex/get/https://disk.yandex.ru/i/7aU3FznLixwmnQ" type="video/mp4">
                     Ваш браузер не поддерживает воспроизведение видео.
                 </video>
@@ -168,7 +156,8 @@
             <div class="video-gallery">
                 <!-- Карточка 1 -->
                 <div class="trick-card" data-video-src="https://getfile.dokpub.com/yandex/get/https://disk.yandex.ru/i/7aU3FznLixwmnQ" data-video-title="Фокус с волшебной палочкой №1">
-                    <img src="https://i.ibb.co/T0jJjVd/magic-wand.jpg" alt="Фокус с волшебной палочкой №1">
+                    <!-- Заглушка для первого превью, так как вы не дали на него ссылку -->
+                    <img src="https://i.ibb.co/VMyPzpt/magic-wand-placeholder.jpg" alt="Фокус с волшебной палочкой №1">
                     <p>Волшебная палочка №1</p>
                 </div>
 
@@ -198,11 +187,8 @@
                     const videoSrc = card.getAttribute('data-video-src');
                     const newTitle = card.getAttribute('data-video-title');
 
-                    // Обновляем источник видео и заголовок
                     mainVideo.src = videoSrc;
                     videoTitle.textContent = newTitle;
-
-                    // Воспроизводим новое видео
                     mainVideo.play();
                 });
             });
